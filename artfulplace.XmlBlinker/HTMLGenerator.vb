@@ -30,6 +30,8 @@ Public Class HTMLGenerator
                 pageObj.Add(HTMLGenerator.CreateOutlineObject(xn))
             ElseIf xn.Name = "Image"
                 pageObj.Add(HTMLGenerator.CreateImageObject(xn, PageId))
+            ElseIf xn.Name = "InkDrawing"
+                pageObj.Add(HTMLGenerator.CreateInkStrokeObject(xn, PageId))
             End If
         Next
 
@@ -160,6 +162,8 @@ Public Class HTMLGenerator
                 Return CreateOETableObject(obj)
             Case "Image"
                 Return CreateImageObjectInOE(obj, PageId)
+            Case "InkDrawing"
+                Return CreateInkStrokeObjectInOE(obj, PageId)
             Case Else
                 Return <span></span>
         End Select
@@ -201,6 +205,46 @@ Public Class HTMLGenerator
 
 
         Dim imgEle = <img src=<%= dataFormat %> height=<%= obj.<Image>.<Size>.@height %> width=<%= obj.<Image>.<Size>.@width %>/>
+
+        Return imgEle
+    End Function
+
+    ''' <summary>
+    ''' Pageオブジェクト内にあるInkDrawingオブジェクトを変換します
+    ''' </summary>
+    ''' <param name="obj"></param>
+    ''' <param name="pId"></param>
+    ''' <returns></returns>
+    Friend Shared Function CreateInkStrokeObject(obj As XElement, pId As String) As XElement
+        Dim pos = obj.<Position>
+        Dim x = pos.@x
+        Dim y = pos.@y
+        Dim stylestr = String.Format("margin-left: {0}px; margin-top: {1}px;", x, y)
+        Dim rootEle = <div style=<%= stylestr %> class=<%= divStyle() %>></div>
+
+        Dim dataFormat = String.Format("data:image/{0};base64,", "png")
+        dataFormat += ISFConverter.IsfConvert(GetBinaryObject(pId, obj.<CallbackID>.@callbackID))
+
+
+        Dim imgEle = <img src=<%= dataFormat %> height=<%= obj.<Size>.@height %> width=<%= obj.<Size>.@width %>/>
+
+        rootEle.Add(imgEle)
+
+        Return rootEle
+    End Function
+
+    ''' <summary>
+    ''' OE内のInkDrawingオブジェクトを変換します
+    ''' </summary>
+    ''' <param name="obj"></param>
+    ''' <param name="pId"></param>
+    ''' <returns></returns>
+    Friend Shared Function CreateInkStrokeObjectInOE(obj As XElement, pId As String) As XElement
+        Dim dataFormat = String.Format("data:image/{0};base64,", "png")
+        dataFormat += ISFConverter.IsfConvert(GetBinaryObject(pId, obj.<InkDrawing>.<CallbackID>.@callbackID))
+
+
+        Dim imgEle = <img src=<%= dataFormat %> height=<%= obj.<InkDrawing>.<Size>.@height %> width=<%= obj.<InkDrawing>.<Size>.@width %>/>
 
 
         Return imgEle
